@@ -1,0 +1,14 @@
+server:
+  port: 8080
+  mode: development
+
+database:
+  driver: sqlite3
+  name: leafnote.db
+
+log:
+  level: debug
+  filename: logs/leafnote.log
+  max_size: 100
+  max_age: 7
+  max_backups: 10 
