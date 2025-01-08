@@ -1,6 +1,6 @@
 server:
   port: 8080
-  mode: development
+  mode: debug
 
 database:
   driver: sqlite3
