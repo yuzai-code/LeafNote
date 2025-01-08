@@ -8,7 +8,7 @@ import (
 )
 
 // Base 模型基础结构
-type Base struct {
+type BaseModel struct {
 	ID        string         `gorm:"type:varchar(36);primary_key" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -16,7 +16,7 @@ type Base struct {
 }
 
 // BeforeCreate 在创建记录前生成UUID
-func (b *Base) BeforeCreate(tx *gorm.DB) error {
+func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
 	if b.ID == "" {
 		b.ID = uuid.New().String()
 	}
