@@ -2,7 +2,7 @@ package model
 
 // Note 笔记模型
 type Note struct {
-	Base
+	BaseModel
 	Title      string    `gorm:"not null" json:"title"`                       // 笔记标题
 	Content    string    `gorm:"type:text" json:"content"`                    // 加密后的笔记内容
 	YAMLMeta   string    `gorm:"column:yaml_meta;type:text" json:"yaml_meta"` // 加密后的YAML元数据

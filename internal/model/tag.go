@@ -2,7 +2,7 @@ package model
 
 // Tag 标签模型
 type Tag struct {
-	Base
+	BaseModel
 	Name     string  `gorm:"not null" json:"name"`                // 标签名称
 	ParentID *string `gorm:"type:varchar(36)" json:"parent_id"`   // 父标签ID
 	Parent   *Tag    `gorm:"foreignKey:ParentID" json:"parent"`   // 父标签

@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 // Category 目录模型
 type Category struct {
-	Base
+	BaseModel
 	Name     string     `gorm:"not null" json:"name"`                // 目录名称
 	Path     string     `gorm:"not null;uniqueIndex" json:"path"`    // 完整路径
 	ParentID *string    `gorm:"type:varchar(36)" json:"parent_id"`   // 父目录ID
@@ -20,7 +20,7 @@ func (Category) TableName() string {
 
 // BeforeCreate 在创建记录前处理路径
 func (c *Category) BeforeCreate(tx *gorm.DB) error {
-	if err := c.Base.BeforeCreate(tx); err != nil {
+	if err := c.BaseModel.BeforeCreate(tx); err != nil {
 		return err
 	}
 

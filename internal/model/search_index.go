@@ -11,7 +11,7 @@ const (
 
 // SearchIndex 搜索索引模型
 type SearchIndex struct {
-	Base
+	BaseModel
 	NoteID  string          `gorm:"type:varchar(36);not null;index" json:"note_id"` // 关联的笔记ID
 	Content string          `gorm:"type:text;not null" json:"content"`              // 加密的搜索索引内容
 	Type    SearchIndexType `gorm:"type:varchar(10);not null" json:"type"`          // 索引类型
