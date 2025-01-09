@@ -1,5 +1,173 @@
-
 ## API 接口文档
+
+### 笔记管理接口
+
+#### 获取笔记列表
+```http
+GET /api/v1/notes
+```
+返回所有笔记列表。
+
+**响应示例：**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "title": "笔记标题",
+      "content": "笔记内容",
+      "yaml_meta": "yaml元数据",
+      "file_path": "/path/to/note.md",
+      "category_id": "分类ID",
+      "created_at": "2024-01-09T12:00:00Z",
+      "updated_at": "2024-01-09T12:00:00Z",
+      "version": 1,
+      "checksum": "内容校验和",
+      "category": {
+        "id": "uuid",
+        "name": "分类名称"
+      },
+      "tags": [
+        {
+          "id": "uuid",
+          "name": "标签名称"
+        }
+      ]
+    }
+  ],
+  "status": "success"
+}
+```
+
+#### 创建笔记
+```http
+POST /api/v1/notes
+```
+创建新笔记。
+
+**请求体：**
+```json
+{
+  "title": "笔记标题",
+  "content": "笔记内容",
+  "yaml_meta": "yaml元数据",
+  "file_path": "/path/to/note.md",
+  "category_id": "分类ID",
+  "tag_ids": ["标签ID1", "标签ID2"]
+}
+```
+
+**响应示例：**
+```json
+{
+  "data": {
+    "id": "uuid",
+    "title": "笔记标题",
+    "content": "笔记内容",
+    "yaml_meta": "yaml元数据",
+    "file_path": "/path/to/note.md",
+    "category_id": "分类ID",
+    "created_at": "2024-01-09T12:00:00Z",
+    "updated_at": "2024-01-09T12:00:00Z",
+    "version": 1,
+    "checksum": "内容校验和"
+  },
+  "status": "success"
+}
+```
+
+#### 获取笔记详情
+```http
+GET /api/v1/notes/:id
+```
+获取指定笔记的详细信息。
+
+**响应示例：**
+```json
+{
+  "data": {
+    "id": "uuid",
+    "title": "笔记标题",
+    "content": "笔记内容",
+    "yaml_meta": "yaml元数据",
+    "file_path": "/path/to/note.md",
+    "category_id": "分类ID",
+    "created_at": "2024-01-09T12:00:00Z",
+    "updated_at": "2024-01-09T12:00:00Z",
+    "version": 1,
+    "checksum": "内容校验和",
+    "category": {
+      "id": "uuid",
+      "name": "分类名称"
+    },
+    "tags": [
+      {
+        "id": "uuid",
+        "name": "标签名称"
+      }
+    ]
+  },
+  "status": "success"
+}
+```
+
+#### 更新笔记
+```http
+PUT /api/v1/notes/:id
+```
+更新指定笔记的信息。
+
+**请求体：**
+```json
+{
+  "title": "新笔记标题",
+  "content": "新笔记内容",
+  "yaml_meta": "新yaml元数据",
+  "category_id": "新分类ID",
+  "tag_ids": ["新标签ID1", "新标签ID2"]
+}
+```
+
+**响应示例：**
+```json
+{
+  "data": {
+    "id": "uuid",
+    "title": "新笔记标题",
+    "content": "新笔记内容",
+    "yaml_meta": "新yaml元数据",
+    "file_path": "/path/to/note.md",
+    "category_id": "新分类ID",
+    "created_at": "2024-01-09T12:00:00Z",
+    "updated_at": "2024-01-09T12:00:00Z",
+    "version": 2,
+    "checksum": "新内容校验和"
+  },
+  "status": "success"
+}
+```
+
+#### 删除笔记
+```http
+DELETE /api/v1/notes/:id
+```
+删除指定笔记。
+
+**响应示例：**
+```json
+{
+  "message": "删除成功",
+  "status": "success"
+}
+```
+
+**错误响应：**
+```json
+{
+  "error": "笔记不存在",
+  "status": "error"
+}
+```
 
 ### 标签管理接口
 
