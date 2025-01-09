@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// Base 模型基础结构
+// BaseModel 模型基础结构
 type BaseModel struct {
 	ID        string         `gorm:"type:varchar(36);primary_key" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`

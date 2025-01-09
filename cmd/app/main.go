@@ -5,6 +5,8 @@ import (
 	"log"
 
 	"leafnote/internal/config"
+	"leafnote/internal/handler"
+	"leafnote/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -34,7 +36,13 @@ func main() {
 	gin.SetMode(cfg.Server.Mode)
 
 	// 初始化 Gin
-	r := gin.Default()
+	r := gin.New() // 使用 gin.New() 而不是 gin.Default() 以便自定义中间件
+
+	// 添加中间件
+	r.Use(middleware.Logger(logger))
+	r.Use(middleware.ErrorHandler())
+	r.Use(middleware.CORS())
+	r.Use(gin.Recovery())
 
 	// 初始化数据库
 	db, err = config.InitDB(&cfg.Database)
@@ -49,8 +57,11 @@ func main() {
 	}
 	defer sqlDB.Close()
 
-	// TODO: 初始化路由
-	// TODO: 初始化中间件
+	// 初始化处理器
+	h := handler.NewHandler(logger)
+
+	// 注册路由
+	h.RegisterRoutes(r)
 
 	// 启动服务器
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
