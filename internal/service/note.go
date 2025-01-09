@@ -139,10 +139,15 @@ func (s *NoteService) UpdateNote(id string, input UpdateNoteInput) error {
 // DeleteNote 删除笔记
 func (s *NoteService) DeleteNote(id string) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&model.Note{BaseModel: model.BaseModel{ID: id}}).Association("Tags").Clear(); err != nil {
+		var note model.Note
+		if err := tx.First(&note, "id = ?", id).Error; err != nil {
 			return err
 		}
-		return tx.Delete(&model.Note{}, "id = ?", id).Error
+
+		if err := tx.Model(&note).Association("Tags").Clear(); err != nil {
+			return err
+		}
+		return tx.Delete(&note).Error
 	})
 }
 

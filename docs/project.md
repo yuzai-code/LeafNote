@@ -61,7 +61,7 @@ leafNote/                 # 主仓库（后端）
   - [x] 日志轮转功能
 - [x] 数据库设计与实现
   - [x] GORM + SQLite 设置
-  - [ ] 数据模型定义
+  - [x] 数据模型定义
   - [x] 自动迁移功能
 - [x] 前端子仓库初始化
   - [x] Vue 3 + TypeScript 设置
@@ -70,7 +70,10 @@ leafNote/                 # 主仓库（后端）
   - [x] 自动导入配置
   - [x] 路由系统搭建
   - [x] 状态管理配置
-- [ ] 后端路由和中间件设置
+- [x] 后端路由和中间件设置
+  - [x] 路由注册
+  - [x] 中间件实现
+  - [x] 单元测试
 
 ### 第二阶段：核心功能实现 [计划中]
 - [ ] 文件系统集成
@@ -454,3 +457,118 @@ CREATE TABLE search_index (
    - [ ] 添加缓存中间件
    - [ ] 响应压缩
    - [ ] 数据库查询优化
+
+## 测试规范
+
+### 测试结构
+1. 单元测试文件命名
+   - 与被测试的源文件在同一目录
+   - 文件名以 `_test.go` 结尾
+   - 例如：`note.go` 的测试文件为 `note_test.go`
+
+2. 测试用例组织
+   ```go
+   func TestXxx(t *testing.T) {
+       tests := []struct {
+           name    string     // 测试用例名称
+           input   SomeType   // 输入参数
+           want    SomeType   // 期望输出
+           wantErr bool       // 是否期望错误
+       }{
+           {
+               name: "正常情况",
+               input: SomeType{...},
+               want: SomeType{...},
+               wantErr: false,
+           },
+           // 更多测试用例...
+       }
+
+       for _, tt := range tests {
+           t.Run(tt.name, func(t *testing.T) {
+               // 测试逻辑
+           })
+       }
+   }
+   ```
+
+### 测试覆盖范围
+1. Service 层测试
+   - 业务逻辑测试
+   - 数据库操作测试
+   - 事务测试
+   - 正常和异常情况测试
+
+2. Handler 层测试
+   - HTTP 接口测试
+   - 请求参数验证
+   - 响应格式验证
+   - 错误处理测试
+
+### 测试工具和依赖
+1. 测试框架
+   - `testing`：Go 标准测试包
+   - `testify/assert`：断言工具包
+   - `httptest`：HTTP 测试工具包
+
+2. 测试数据库
+   - 使用 SQLite 内存数据库
+   - 每个测试用例独立的数据库实例
+   - 自动迁移表结构
+
+### 测试命令
+```bash
+# 运行所有测试
+go test ./...
+
+# 运行指定包的测试
+go test ./internal/service/...
+go test ./internal/handler/...
+
+# 显示详细测试输出
+go test -v ./...
+
+# 生成测试覆盖率报告
+go test -cover ./...
+
+# 生成 HTML 格式的覆盖率报告
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+```
+
+### 测试最佳实践
+1. 代码组织
+   - 使用 table-driven tests 风格
+   - 每个测试函数专注于一个功能点
+   - 测试用例包含正常和异常情况
+
+2. 测试数据
+   - 使用有意义的测试数据
+   - 避免测试数据之间的依赖
+   - 每个测试用例后清理数据
+
+3. 错误处理
+   - 验证错误情况
+   - 检查错误类型和消息
+   - 确保错误处理逻辑正确
+
+4. 测试辅助函数
+   - 提取公共的测试设置代码
+   - 创建测试工具函数
+   - 使用 test fixtures
+
+### 待改进项目
+1. 提高测试覆盖率
+   - [ ] Service 层覆盖率达到 80%
+   - [ ] Handler 层覆盖率达到 80%
+   - [ ] 关键业务逻辑 100% 覆盖
+
+2. 增加测试类型
+   - [ ] 集成测试
+   - [ ] 性能测试
+   - [ ] 并发测试
+
+3. 测试工具改进
+   - [ ] 添加测试 mock
+   - [ ] 自动化测试脚本
+   - [ ] CI/CD 集成
