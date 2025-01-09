@@ -3,17 +3,20 @@ package handler
 import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // Handler 结构体包含所有处理器依赖
 type Handler struct {
 	logger *zap.Logger
+	db     *gorm.DB
 }
 
 // NewHandler 创建一个新的处理器实例
-func NewHandler(logger *zap.Logger) *Handler {
+func NewHandler(logger *zap.Logger, db *gorm.DB) *Handler {
 	return &Handler{
 		logger: logger,
+		db:     db,
 	}
 }
 
@@ -59,13 +62,6 @@ func (h *Handler) RegisterRoutes(r *gin.Engine) {
 		}
 	}
 }
-
-// 笔记相关处理器
-func (h *Handler) ListNotes(c *gin.Context)  { c.JSON(200, gin.H{"message": "not implemented"}) }
-func (h *Handler) CreateNote(c *gin.Context) { c.JSON(200, gin.H{"message": "not implemented"}) }
-func (h *Handler) GetNote(c *gin.Context)    { c.JSON(200, gin.H{"message": "not implemented"}) }
-func (h *Handler) UpdateNote(c *gin.Context) { c.JSON(200, gin.H{"message": "not implemented"}) }
-func (h *Handler) DeleteNote(c *gin.Context) { c.JSON(200, gin.H{"message": "not implemented"}) }
 
 // 标签相关处理器
 func (h *Handler) ListTags(c *gin.Context)  { c.JSON(200, gin.H{"message": "not implemented"}) }

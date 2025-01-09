@@ -58,7 +58,7 @@ func main() {
 	defer sqlDB.Close()
 
 	// 初始化处理器
-	h := handler.NewHandler(logger)
+	h := handler.NewHandler(logger, db)
 
 	// 注册路由
 	h.RegisterRoutes(r)
