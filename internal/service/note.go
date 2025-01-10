@@ -43,9 +43,16 @@ type UpdateNoteInput struct {
 }
 
 // ListNotes 获取笔记列表
-func (s *NoteService) ListNotes() ([]model.Note, error) {
+func (s *NoteService) ListNotes(categoryID *string) ([]model.Note, error) {
 	var notes []model.Note
-	err := s.db.Preload("Category").Preload("Tags").Find(&notes).Error
+	query := s.db.Preload("Category").Preload("Tags")
+
+	// 如果指定了分类ID，则只获取该分类下的笔记
+	if categoryID != nil {
+		query = query.Where("category_id = ?", *categoryID)
+	}
+
+	err := query.Find(&notes).Error
 	return notes, err
 }
 

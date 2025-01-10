@@ -15,6 +15,7 @@ import (
 
 	"leafnote/internal/model"
 	"leafnote/internal/service"
+	"leafnote/internal/testutil"
 )
 
 func setupTestRouter(t *testing.T) (*gin.Engine, *gorm.DB) {
@@ -42,47 +43,68 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *gorm.DB) {
 }
 
 func TestTagHandler_CreateTag(t *testing.T) {
-	r, _ := setupTestRouter(t)
+	db, err := testutil.SetupTestDB()
+	assert.NoError(t, err)
+	defer func() {
+		err := db.Migrator().DropTable(&model.Tag{})
+		assert.NoError(t, err)
+	}()
 
 	tests := []struct {
-		name       string
-		tag        model.Tag
-		wantStatus int
+		name         string
+		requestBody  map[string]interface{}
+		wantStatus   int
+		wantResponse interface{}
 	}{
 		{
 			name: "创建成功",
-			tag: model.Tag{
-				Name: "测试标签",
+			requestBody: map[string]interface{}{
+				"name": "测试标签",
 			},
-			wantStatus: http.StatusOK,
+			wantStatus: http.StatusCreated,
+			wantResponse: map[string]interface{}{
+				"name": "测试标签",
+			},
 		},
 		{
 			name: "名称为空",
-			tag: model.Tag{
-				Name: "",
+			requestBody: map[string]interface{}{
+				"name": "",
 			},
 			wantStatus: http.StatusInternalServerError,
+			wantResponse: map[string]interface{}{
+				"error": "创建标签失败",
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			body, err := json.Marshal(tt.tag)
+			body, err := json.Marshal(tt.requestBody)
 			assert.NoError(t, err)
 
-			req := httptest.NewRequest(http.MethodPost, "/api/v1/tags", bytes.NewBuffer(body))
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/tags", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
+
+			r := gin.Default()
+			h := NewHandler(zap.NewExample(), db)
+			r.POST("/api/v1/tags", h.CreateTag)
 
 			r.ServeHTTP(w, req)
 
 			assert.Equal(t, tt.wantStatus, w.Code)
-			if tt.wantStatus == http.StatusOK {
+			if tt.wantStatus == http.StatusCreated {
 				var response model.Tag
 				err = json.Unmarshal(w.Body.Bytes(), &response)
 				assert.NoError(t, err)
 				assert.NotEmpty(t, response.BaseModel.ID)
-				assert.Equal(t, tt.tag.Name, response.Name)
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["name"], response.Name)
+			} else {
+				var response map[string]interface{}
+				err = json.Unmarshal(w.Body.Bytes(), &response)
+				assert.NoError(t, err)
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["error"], response["error"])
 			}
 		})
 	}

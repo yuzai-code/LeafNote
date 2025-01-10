@@ -41,9 +41,17 @@ func (s *CategoryService) CreateCategory(ctx context.Context, category *model.Ca
 		category.Path = "/" + category.Name
 	}
 
-	// 检查路径是否已存在
+	// 检查路径是否已存在（使用 Unscoped 忽略软删除）
 	var count int64
-	if err := s.db.Model(&model.Category{}).Where("path = ?", category.Path).Count(&count).Error; err != nil {
+	query := s.db.Unscoped().Model(&model.Category{}).Where("path = ?", category.Path)
+	if category.ParentID != nil {
+		// 如果是子目录，还要检查父目录ID
+		query = query.Where("parent_id = ?", *category.ParentID)
+	} else {
+		// 如果是顶级目录，确保没有同名的顶级目录
+		query = query.Where("parent_id IS NULL")
+	}
+	if err := query.Count(&count).Error; err != nil {
 		return err
 	}
 	if count > 0 {
@@ -115,7 +123,18 @@ func (s *CategoryService) UpdateCategory(ctx context.Context, category *model.Ca
 	// 如果路径发生变化，检查新路径是否已存在
 	if category.Path != oldCategory.Path {
 		var count int64
-		if err := s.db.Model(&model.Category{}).Where("path = ? AND id != ?", category.Path, category.BaseModel.ID).Count(&count).Error; err != nil {
+		query := s.db.Unscoped().Model(&model.Category{}).
+			Where("path = ? AND id != ?", category.Path, category.BaseModel.ID)
+
+		if category.ParentID != nil {
+			// 如果是子目录，还要检查父目录ID
+			query = query.Where("parent_id = ?", *category.ParentID)
+		} else {
+			// 如果是顶级目录，确保没有同名的顶级目录
+			query = query.Where("parent_id IS NULL")
+		}
+
+		if err := query.Count(&count).Error; err != nil {
 			return err
 		}
 		if count > 0 {
@@ -167,28 +186,43 @@ func (s *CategoryService) DeleteCategory(ctx context.Context, id string) error {
 			return err
 		}
 
-		// 检查是否有子目录
-		var count int64
-		if err := tx.Model(&model.Category{}).Where("parent_id = ?", id).Count(&count).Error; err != nil {
+		// 递归删除所有子目录及其笔记
+		if err := s.recursiveDelete(tx, id); err != nil {
 			return err
 		}
-		if count > 0 {
-			return errors.New("请先删除子目录")
-		}
 
-		// 检查目录下是否有笔记
-		if err := tx.Model(&model.Note{}).Where("category_id = ?", id).Count(&count).Error; err != nil {
-			return err
-		}
-		if count > 0 {
-			return errors.New("请先删除目录下的笔记")
-		}
-
-		// 删除目录
-		if err := tx.Delete(&category).Error; err != nil {
+		// 删除当前目录
+		if err := tx.Unscoped().Delete(&category).Error; err != nil {
 			return err
 		}
 
 		return nil
 	})
+}
+
+// recursiveDelete 递归删除目录及其所有子目录和笔记
+func (s *CategoryService) recursiveDelete(tx *gorm.DB, categoryID string) error {
+	// 获取所有子目录
+	var children []model.Category
+	if err := tx.Where("parent_id = ?", categoryID).Find(&children).Error; err != nil {
+		return err
+	}
+
+	// 递归删除每个子目录
+	for _, child := range children {
+		if err := s.recursiveDelete(tx, child.ID); err != nil {
+			return err
+		}
+		// 删除子目录
+		if err := tx.Unscoped().Delete(&child).Error; err != nil {
+			return err
+		}
+	}
+
+	// 删除当前目录下的所有笔记
+	if err := tx.Unscoped().Where("category_id = ?", categoryID).Delete(&model.Note{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
