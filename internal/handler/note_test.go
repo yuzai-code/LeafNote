@@ -49,10 +49,10 @@ func TestHandler_CreateNote(t *testing.T) {
 		name         string
 		requestBody  map[string]interface{}
 		wantStatus   int
-		wantResponse map[string]interface{}
+		wantResponse interface{}
 	}{
 		{
-			name: "正常创建笔记",
+			name: "创建成功",
 			requestBody: map[string]interface{}{
 				"title":     "测试笔记",
 				"content":   "测试内容",
@@ -60,25 +60,28 @@ func TestHandler_CreateNote(t *testing.T) {
 			},
 			wantStatus: http.StatusCreated,
 			wantResponse: map[string]interface{}{
-				"status": "success",
+				"title":     "测试笔记",
+				"content":   "测试内容",
+				"file_path": "/test/note.md",
 			},
 		},
 		{
-			name: "缺少必要字段",
+			name: "缺少必填字段",
 			requestBody: map[string]interface{}{
 				"content": "测试内容",
 			},
 			wantStatus: http.StatusBadRequest,
 			wantResponse: map[string]interface{}{
-				"error":  "Invalid request body",
-				"status": "error",
+				"error": "无效的请求参数",
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			body, _ := json.Marshal(tt.requestBody)
+			body, err := json.Marshal(tt.requestBody)
+			assert.NoError(t, err)
+
 			req := httptest.NewRequest("POST", "/api/v1/notes", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -88,13 +91,16 @@ func TestHandler_CreateNote(t *testing.T) {
 			assert.Equal(t, tt.wantStatus, w.Code)
 
 			var response map[string]interface{}
-			err := json.Unmarshal(w.Body.Bytes(), &response)
+			err = json.Unmarshal(w.Body.Bytes(), &response)
 			assert.NoError(t, err)
 
-			// 检查响应状态
-			assert.Equal(t, tt.wantResponse["status"], response["status"])
-			if tt.wantStatus != http.StatusCreated {
-				assert.Equal(t, tt.wantResponse["error"], response["error"])
+			if tt.wantStatus == http.StatusCreated {
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["title"], response["title"])
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["content"], response["content"])
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["file_path"], response["file_path"])
+				assert.NotEmpty(t, response["id"])
+			} else {
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["error"], response["error"])
 			}
 		})
 	}
@@ -115,14 +121,16 @@ func TestHandler_GetNote(t *testing.T) {
 		name         string
 		noteID       string
 		wantStatus   int
-		wantResponse map[string]interface{}
+		wantResponse interface{}
 	}{
 		{
 			name:       "获取存在的笔记",
 			noteID:     note.ID,
 			wantStatus: http.StatusOK,
 			wantResponse: map[string]interface{}{
-				"status": "success",
+				"title":     "测试笔记",
+				"content":   "测试内容",
+				"file_path": "/test/note.md",
 			},
 		},
 		{
@@ -130,8 +138,7 @@ func TestHandler_GetNote(t *testing.T) {
 			noteID:     "not-exist",
 			wantStatus: http.StatusNotFound,
 			wantResponse: map[string]interface{}{
-				"error":  "Note not found",
-				"status": "error",
+				"error": "笔记不存在",
 			},
 		},
 	}
@@ -149,9 +156,13 @@ func TestHandler_GetNote(t *testing.T) {
 			err := json.Unmarshal(w.Body.Bytes(), &response)
 			assert.NoError(t, err)
 
-			assert.Equal(t, tt.wantResponse["status"], response["status"])
-			if tt.wantStatus != http.StatusOK {
-				assert.Equal(t, tt.wantResponse["error"], response["error"])
+			if tt.wantStatus == http.StatusOK {
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["title"], response["title"])
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["content"], response["content"])
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["file_path"], response["file_path"])
+				assert.NotEmpty(t, response["id"])
+			} else {
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["error"], response["error"])
 			}
 		})
 	}
@@ -162,8 +173,8 @@ func TestHandler_UpdateNote(t *testing.T) {
 
 	// 创建测试数据
 	note := &model.Note{
-		Title:    "测试笔记",
-		Content:  "测试内容",
+		Title:    "原始标题",
+		Content:  "原始内容",
 		FilePath: "/test/note.md",
 	}
 	h.db.Create(note)
@@ -173,37 +184,40 @@ func TestHandler_UpdateNote(t *testing.T) {
 		noteID       string
 		requestBody  map[string]interface{}
 		wantStatus   int
-		wantResponse map[string]interface{}
+		wantResponse interface{}
 	}{
 		{
-			name:   "更新存在的笔记",
+			name:   "更新成功",
 			noteID: note.ID,
 			requestBody: map[string]interface{}{
-				"title":   "更新后的标题",
-				"content": "更新后的内容",
+				"title":   "新标题",
+				"content": "新内容",
 			},
 			wantStatus: http.StatusOK,
 			wantResponse: map[string]interface{}{
-				"status": "success",
+				"title":     "新标题",
+				"content":   "新内容",
+				"file_path": "/test/note.md",
 			},
 		},
 		{
-			name:   "更新不存在的笔记",
+			name:   "笔记不存在",
 			noteID: "not-exist",
 			requestBody: map[string]interface{}{
-				"title": "更新后的标题",
+				"title": "新标题",
 			},
 			wantStatus: http.StatusInternalServerError,
 			wantResponse: map[string]interface{}{
-				"error":  "Failed to update note",
-				"status": "error",
+				"error": "更新笔记失败",
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			body, _ := json.Marshal(tt.requestBody)
+			body, err := json.Marshal(tt.requestBody)
+			assert.NoError(t, err)
+
 			req := httptest.NewRequest("PUT", "/api/v1/notes/"+tt.noteID, bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
@@ -213,12 +227,16 @@ func TestHandler_UpdateNote(t *testing.T) {
 			assert.Equal(t, tt.wantStatus, w.Code)
 
 			var response map[string]interface{}
-			err := json.Unmarshal(w.Body.Bytes(), &response)
+			err = json.Unmarshal(w.Body.Bytes(), &response)
 			assert.NoError(t, err)
 
-			assert.Equal(t, tt.wantResponse["status"], response["status"])
-			if tt.wantStatus != http.StatusOK {
-				assert.Equal(t, tt.wantResponse["error"], response["error"])
+			if tt.wantStatus == http.StatusOK {
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["title"], response["title"])
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["content"], response["content"])
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["file_path"], response["file_path"])
+				assert.NotEmpty(t, response["id"])
+			} else {
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["error"], response["error"])
 			}
 		})
 	}
@@ -239,23 +257,22 @@ func TestHandler_DeleteNote(t *testing.T) {
 		name         string
 		noteID       string
 		wantStatus   int
-		wantResponse map[string]interface{}
+		wantResponse interface{}
 	}{
 		{
-			name:       "删除存在的笔记",
+			name:       "删除成功",
 			noteID:     note.ID,
 			wantStatus: http.StatusOK,
 			wantResponse: map[string]interface{}{
-				"status": "success",
+				"message": "删除成功",
 			},
 		},
 		{
-			name:       "删除不存在的笔记",
+			name:       "笔记不存在",
 			noteID:     "not-exist",
 			wantStatus: http.StatusInternalServerError,
 			wantResponse: map[string]interface{}{
-				"error":  "Failed to delete note",
-				"status": "error",
+				"error": "删除笔记失败",
 			},
 		},
 	}
@@ -273,9 +290,10 @@ func TestHandler_DeleteNote(t *testing.T) {
 			err := json.Unmarshal(w.Body.Bytes(), &response)
 			assert.NoError(t, err)
 
-			assert.Equal(t, tt.wantResponse["status"], response["status"])
-			if tt.wantStatus != http.StatusOK {
-				assert.Equal(t, tt.wantResponse["error"], response["error"])
+			if tt.wantStatus == http.StatusOK {
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["message"], response["message"])
+			} else {
+				assert.Equal(t, tt.wantResponse.(map[string]interface{})["error"], response["error"])
 			}
 		})
 	}

@@ -5,12 +5,12 @@ import "gorm.io/gorm"
 // Category 目录模型
 type Category struct {
 	BaseModel
-	Name     string     `gorm:"not null" json:"name"`                // 目录名称
-	Path     string     `gorm:"not null;uniqueIndex" json:"path"`    // 完整路径
-	ParentID *string    `gorm:"type:varchar(36)" json:"parent_id"`   // 父目录ID
-	Parent   *Category  `gorm:"foreignKey:ParentID" json:"parent"`   // 父目录
-	Children []Category `gorm:"foreignKey:ParentID" json:"children"` // 子目录
-	Notes    []Note     `gorm:"foreignKey:CategoryID" json:"notes"`  // 目录下的笔记
+	Name     string     `gorm:"not null" json:"name" binding:"required"` // 目录名称
+	Path     string     `gorm:"not null;uniqueIndex" json:"path"`        // 完整路径
+	ParentID *string    `gorm:"type:varchar(36)" json:"parent_id"`       // 父目录ID
+	Parent   *Category  `gorm:"foreignKey:ParentID" json:"parent"`       // 父目录
+	Children []Category `gorm:"foreignKey:ParentID" json:"children"`     // 子目录
+	Notes    []Note     `gorm:"foreignKey:CategoryID" json:"notes"`      // 目录下的笔记
 }
 
 // TableName 指定表名
