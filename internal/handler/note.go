@@ -10,8 +10,14 @@ import (
 
 // ListNotes 获取笔记列表
 func (h *Handler) ListNotes(c *gin.Context) {
+	categoryID := c.Query("category_id")
+	var categoryIDPtr *string
+	if categoryID != "" {
+		categoryIDPtr = &categoryID
+	}
+
 	noteService := service.NewNoteService(h.db, h.logger)
-	notes, err := noteService.ListNotes()
+	notes, err := noteService.ListNotes(categoryIDPtr)
 	if err != nil {
 		h.logger.Error("Failed to get notes", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{
