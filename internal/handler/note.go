@@ -50,10 +50,12 @@ func (h *Handler) CreateNote(c *gin.Context) {
 	noteService := service.NewNoteService(h.db, h.logger)
 	note, err := noteService.CreateNote(service.CreateNoteInput(req))
 	if err != nil {
-		h.logger.Error("Failed to create note", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "创建笔记失败",
-		})
+		h.logger.Error("Failed to crete note", zap.Error(err))
+		if err.Error() == "文件路径已存在" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "文件路径已存在",
+			})
+		}
 		return
 	}
 
@@ -146,5 +148,23 @@ func (h *Handler) DeleteNote(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "删除成功",
+	})
+}
+
+// RestoreNote 恢复已删除的笔记
+func (h *Handler) RestoreNote(c *gin.Context) {
+	id := c.Param("id")
+	noteService := service.NewNoteService(h.db, h.logger)
+
+	if err := noteService.RestoreNote(id); err != nil {
+		h.logger.Error("Failed to restore note", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "恢复笔记失败",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "笔记已恢复",
 	})
 }
