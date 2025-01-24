@@ -27,20 +27,44 @@ func (h *Handler) CreateCategory(c *gin.Context) {
 	if err := c.ShouldBindJSON(&category); err != nil {
 		h.logger.Error("Invalid request parameters", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "无效的请求参数",
+			"status": "error",
+			"error":  "无效的请求参数",
 		})
 		return
 	}
 
 	if err := h.categoryService.CreateCategory(c.Request.Context(), &category); err != nil {
 		h.logger.Error("Failed to create category", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "创建目录失败",
-		})
+		// 根据错误类型返回不同的状态码
+		switch err.Error() {
+		case "目录名称不能为空":
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status": "error",
+				"error":  err.Error(),
+			})
+		case "同级目录下已存在同名目录":
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status": "error",
+				"error":  err.Error(),
+			})
+		case "父目录不存在":
+			c.JSON(http.StatusNotFound, gin.H{
+				"status": "error",
+				"error":  err.Error(),
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status": "error",
+				"error":  err.Error(),
+			})
+		}
 		return
 	}
 
-	c.JSON(http.StatusCreated, category)
+	c.JSON(http.StatusCreated, gin.H{
+		"status": "success",
+		"data":   category,
+	})
 }
 
 // GetCategory 获取目录详情

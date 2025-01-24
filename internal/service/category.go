@@ -26,8 +26,15 @@ func (s *CategoryService) CreateCategory(ctx context.Context, category *model.Ca
 		return errors.New("目录名称不能为空")
 	}
 
-	// 如果有父目录ID，检查父目录是否存在
+	// 检查同级目录下是否存在同名目录
+	var count int64
+	query := s.db.Model(&model.Category{}).Where("name = ?", category.Name)
+
 	if category.ParentID != nil {
+		// 如果是子目录，检查同一父目录下是否有同名目录
+		query = query.Where("parent_id = ?", *category.ParentID)
+
+		// 检查父目录是否存在
 		var parent model.Category
 		if err := s.db.First(&parent, "id = ?", *category.ParentID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -38,19 +45,21 @@ func (s *CategoryService) CreateCategory(ctx context.Context, category *model.Ca
 		// 设置完整路径
 		category.Path = parent.Path + "/" + category.Name
 	} else {
+		// 如果是顶级目录，检查是否有同名的顶级目录
+		query = query.Where("parent_id IS NULL")
 		category.Path = "/" + category.Name
 	}
 
-	// 检查路径是否已存在（使用 Unscoped 忽略软删除）
-	var count int64
-	query := s.db.Unscoped().Model(&model.Category{}).Where("path = ?", category.Path)
-	if category.ParentID != nil {
-		// 如果是子目录，还要检查父目录ID
-		query = query.Where("parent_id = ?", *category.ParentID)
-	} else {
-		// 如果是顶级目录，确保没有同名的顶级目录
-		query = query.Where("parent_id IS NULL")
+	// 执行查询
+	if err := query.Count(&count).Error; err != nil {
+		return err
 	}
+	if count > 0 {
+		return errors.New("同级目录下已存在同名目录")
+	}
+
+	// 检查路径是否已存在（使用 Unscoped 忽略软删除）
+	query = s.db.Unscoped().Model(&model.Category{}).Where("path = ?", category.Path)
 	if err := query.Count(&count).Error; err != nil {
 		return err
 	}
