@@ -75,7 +75,7 @@ func (s *CategoryService) CreateCategory(ctx context.Context, category *model.Ca
 // GetCategoryByID 根据ID获取目录
 func (s *CategoryService) GetCategoryByID(ctx context.Context, id string) (*model.Category, error) {
 	var category model.Category
-	err := s.db.Preload("Children").First(&category, "id = ?", id).Error
+	err := s.db.Preload("Children").Preload("Notes").First(&category, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("目录不存在")
@@ -88,9 +88,39 @@ func (s *CategoryService) GetCategoryByID(ctx context.Context, id string) (*mode
 // ListCategories 获取目录列表
 func (s *CategoryService) ListCategories(ctx context.Context) ([]model.Category, error) {
 	var categories []model.Category
-	// 只获取顶级目录（没有父目录的目录）
-	err := s.db.Preload("Children").Where("parent_id IS NULL").Find(&categories).Error
-	return categories, err
+
+	// 首先获取所有顶级目录，并预加载 notes
+	if err := s.db.Preload("Notes").Where("parent_id IS NULL").Find(&categories).Error; err != nil {
+		return nil, err
+	}
+
+	// 递归加载所有子目录
+	for i := range categories {
+		if err := s.loadChildren(ctx, &categories[i]); err != nil {
+			return nil, err
+		}
+	}
+
+	return categories, nil
+}
+
+// loadChildren 递归加载目录的子目录
+func (s *CategoryService) loadChildren(ctx context.Context, category *model.Category) error {
+	// 查询当前目录的直接子目录，并预加载 notes
+	var children []model.Category
+	if err := s.db.Preload("Notes").Where("parent_id = ?", category.ID).Find(&children).Error; err != nil {
+		return err
+	}
+
+	// 如果有子目录，递归加载它们的子目录
+	for i := range children {
+		if err := s.loadChildren(ctx, &children[i]); err != nil {
+			return err
+		}
+	}
+
+	category.Children = children
+	return nil
 }
 
 // UpdateCategory 更新目录
